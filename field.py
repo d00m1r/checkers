@@ -79,7 +79,7 @@ class Field(Frame):
     def __quit(self):
         ans = messagebox.askokcancel('Verify exit', "Do you really want exit?")
         if ans: 
-            Frame.__quit(self)
+            Frame.quit(self)
 
     def __run(self, event):
 
