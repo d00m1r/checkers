@@ -17,15 +17,6 @@ class Field(Frame):
             [0,1,0,1,0,1,0,1],
             [1,0,1,0,1,0,1,0]]
 
-    prev_field = [[0,3,0,3,0,3,0,3],
-            [3,0,3,0,3,0,3,0],
-            [0,3,0,3,0,3,0,3],
-            [0,0,0,0,0,0,0,0],
-            [0,0,0,0,0,0,0,0],
-            [1,0,1,0,1,0,1,0],
-            [0,1,0,1,0,1,0,1],
-            [1,0,1,0,1,0,1,0]]
-
     player = True##val = 1 -> plr1; val = 0 -> plr2(comp) 
 
     def __init__(self, bot, parent=None):          
@@ -47,16 +38,16 @@ class Field(Frame):
     def setUI(self):
 
         #load pictures for checkers
-        self.ch1 = PhotoImage(file="/home/damir//projects/PythonCheckers/tkinter_checkers/pic/w.gif")#plr1
-        self.q1 = PhotoImage(file="/home/damir//projects/PythonCheckers/tkinter_checkers/pic/wq.gif")
-        self.ch2 = PhotoImage(file="/home/damir//projects/PythonCheckers/tkinter_checkers/pic/b.gif")#plr2
-        self.q2 = PhotoImage(file="/home/damir//projects/PythonCheckers/tkinter_checkers/pic/bq.gif")
+        self.ch1 = PhotoImage(file="/home/damir//projects/PythonCheckers/checkers/pic/w.gif")#plr1
+        self.q1 = PhotoImage(file="/home/damir//projects/PythonCheckers/checkers/pic/wq.gif")
+        self.ch2 = PhotoImage(file="/home/damir//projects/PythonCheckers/checkers/pic/b.gif")#plr2
+        self.q2 = PhotoImage(file="/home/damir//projects/PythonCheckers/checkers/pic/bq.gif")
         self.checkers = [0,self.ch1, self.q1, self.ch2, self.q2]
 
         #create field for checkers
         self.canv = Canvas(self, width = 800, height = 800, bg="white")
         self.canv.pack()
-
+    
         if self.__bot:
             self.canv.bind("<Button-1>", self.run_with_bot)
         else:
@@ -64,18 +55,15 @@ class Field(Frame):
 
         widget1 = Button(self, text='Quit', command = self.quit)
         widget1.pack(side='right', expand='yes', fill = BOTH)
-        
-        '''
-        widget2 = Button(self, text='Back', command = self.back)
-        widget2.pack(side='left', expand='yes', fill = BOTH)
-        '''
+
 
     def run(self, event):
 
         #checker coordinates calculation
         x, y = (event.x)//100, (event.y)//100
+
         if Field.player:
-            if Field.field[y][x]==1 or Field.field[y][x]==2:
+            if Field.field[y][x] == 1 or Field.field[y][x] == 2:
                 self.canv.coords(self.red_frame, x*100, y*100, x*100+100, y*100+100)
                 self.plr1.x1, self.plr1.y1 = x, y
                 
@@ -86,7 +74,6 @@ class Field(Frame):
                     if self.plr1.make_move():
                         Field.player = False#передача хода
 
-                    self.canv.coords(self.red_frame,-5,-5,-5,-5)#рамка вне поля
                     self.draw_field(self.plr1.x1, self.plr1.y1, self.plr1.x2, self.plr1.y2)
                     self.plr1.x1 = self.plr1.y1 = self.plr1.x2 = self.plr1.y2 = -1
                 self.plr1.x2, self.plr1.y2 = -1, -1
@@ -105,7 +92,6 @@ class Field(Frame):
                     if self.plr2.make_move():
                         Field.player = True#pass the move
 
-                    self.canv.coords(self.red_frame,-5,-5,-5,-5)
                     self.draw_field(self.plr2.x1, self.plr2.y1, self.plr2.x2, self.plr2.y2)
                     self.plr2.x1 = self.plr2.y1 = self.plr2.x2 = self.plr2.y2 = -1
                 self.plr2.x2, self.plr2.y2 = -1, -1
@@ -131,15 +117,12 @@ class Field(Frame):
                     if self.plr1.make_move():
                         Field.player = False#передача хода
 
-                    self.canv.coords(self.red_frame,-5,-5,-5,-5)#рамка вне поля
                     self.draw_field(self.plr1.x1, self.plr1.y1, self.plr1.x2, self.plr1.y2)
                     self.plr1.x1 = self.plr1.y1 = self.plr1.x2 = self.plr1.y2 = -1
                 self.plr1.x2, self.plr1.y2 = -1, -1
 
-        elif not(Field.player):
+        if not(Field.player):
             
-            self.canv.coords(self.red_frame,-5,-5,-5,-5)#рамка вне поля
-
             grid, s = [], ''
             for row in Field.field:
                 for el in row:
@@ -156,12 +139,12 @@ class Field(Frame):
                 grid.append(s)
                 s =''
 
-            print(grid)
+            #print(grid)
 
             state = CheckersState([list(row.rstrip()) for row in grid], True, [])
             move = iterativeDeepeningAlphaBeta(state, piecesCount)
             
-            print(move)
+            #print(move)
             if self.make_move_bot(move):
                 Field.player = True#передача хода
 
@@ -175,12 +158,6 @@ class Field(Frame):
         val1, val2 = 3, 4
         val_q = 7
 
-        '''#сохранение предыдущего шага
-        Field.prev_field = Field.field[:]
-        for el in Field.field:
-            print(el)
-        print('\n')
-        '''
         #превращение
         if y2 == val_q and Field.field[y1][x1] == val1:
             Field.field[y1][x1] = val2
@@ -244,15 +221,6 @@ class Field(Frame):
                             break
                             
         return move_list
-    '''
-    def back(self):
-        Field.field = Field.prev_field[:]
-    '''
-    '''
-    for el in Field.prev_field:
-        print(el)
-    print('\n')
-    '''
 
     def draw_field(self, x1, y1, x2, y2):
         k = 100
@@ -261,7 +229,7 @@ class Field(Frame):
         
         #checker's highlighting
         self.red_frame = self.canv.create_rectangle(-5,-5,-5,-5, outline="red",width=5)
-
+        self.canv.coords(self.red_frame, x1*100, y1*100, x1*100+100, y1*100+100)
         x = 0
         while x < 8*k:#рисуем доску
             y=1*k
@@ -320,7 +288,6 @@ class Player(Field):
         
         if not(move_list):    
             move_list = self.remaining_move()#check another moves
-
         if move_list:
             if ((x1, y1),(x2, y2)) in move_list:#the move complies with the rules
                 return True
