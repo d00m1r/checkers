@@ -1,13 +1,11 @@
 from tkinter import *
 from tkinter import messagebox
 from bot import *
-import time
 from copy import deepcopy
 
 
 class Field(Frame):
 
-    #make a battlefield
     field = [[0,3,0,3,0,3,0,3],
             [3,0,3,0,3,0,3,0],
             [0,3,0,3,0,3,0,3],
@@ -17,62 +15,74 @@ class Field(Frame):
             [0,1,0,1,0,1,0,1],
             [1,0,1,0,1,0,1,0]]
 
-    prev_field = [[0,3,0,3,0,3,0,3],
-            [3,0,3,0,3,0,3,0],
-            [0,3,0,3,0,3,0,3],
-            [0,0,0,0,0,0,0,0],
-            [0,0,0,0,0,0,0,0],
-            [1,0,1,0,1,0,1,0],
-            [0,1,0,1,0,1,0,1],
-            [1,0,1,0,1,0,1,0]]
+    player = True#val = 1 -> plr1; val = 0 -> plr2(comp) 
 
-    player = True##val = 1 -> plr1; val = 0 -> plr2(comp) 
+    __gameMode = 0#0 - PVP, 1 - PVB
 
-    def __init__(self, bot, parent=None):          
+    def __init__(self, parent = None):          
         Frame.__init__(self, parent)
+        self.parent = parent
 
-        self.__bot = bot
-        self.pack()
-        self.setUI()
+        self.__intro = Label(self, text = 'Choose game mode')
+        self.__intro.pack()
 
-        #create 2 players
+        self.widget1 = Button(self, text='PvsP mode', command = self.pvpMode)
+        self.widget1.pack(side='right', expand='yes', fill = BOTH)
+
+        self.widget2 = Button(self, text='PvsBot mode', command = self.pvbMode)
+        self.widget2.pack(side='left', expand='yes', fill = BOTH)
+
+        self.pack()#!
+    
+    def pvpMode(self):
+        Field.__gameMode = 0
         self.plr1 = Player()
-        #self.plr2 = CheckersState() if self.__bot else Player()
         self.plr2 = Player()
 
-        self.draw_field(0,0,0,0)
+        self.__setUI()
+        self._drawField(-1,-1,-1,-1)
 
+    def pvbMode(self):
+        Field.__gameMode = 1
+        self.plr1 = Player()
 
+        self.__setUI()
+        self._drawField(-1,-1,-1,-1)
 
-    def setUI(self):
+    def __setUI(self):
 
-        #load pictures for checkers
-        self.ch1 = PhotoImage(file="/home/damir//projects/PythonCheckers/tkinter_checkers/pic/w.gif")#plr1
-        self.q1 = PhotoImage(file="/home/damir//projects/PythonCheckers/tkinter_checkers/pic/wq.gif")
-        self.ch2 = PhotoImage(file="/home/damir//projects/PythonCheckers/tkinter_checkers/pic/b.gif")#plr2
-        self.q2 = PhotoImage(file="/home/damir//projects/PythonCheckers/tkinter_checkers/pic/bq.gif")
-        self.checkers = [0,self.ch1, self.q1, self.ch2, self.q2]
+        self.__intro.destroy()
+        self.widget1.destroy()#pack_forget()
+        self.widget2.destroy()
+        self.parent.geometry("820x840")
 
-        #create field for checkers
+        self.w = PhotoImage(file="/home/damir/projects/PythonCheckers/checkers/pic/w.gif")#plr1
+        self.W = PhotoImage(file="/home/damir/projects/PythonCheckers/checkers/pic/wq.gif")
+        self.b = PhotoImage(file="/home/damir/projects/PythonCheckers/checkers/pic/b.gif")#plr2
+        self.B = PhotoImage(file="/home/damir/projects/PythonCheckers/checkers/pic/bq.gif")
+
+        self.checkers = [0,self.w, self.W, self.b, self.B]
+        #self.checkers = {'w':self.w , 'W':self.W, 'b':self.b, 'B':self.B}
+
+        #создание холста для шашек
         self.canv = Canvas(self, width = 800, height = 800, bg="white")
         self.canv.pack()
 
-        if self.__bot:
-            self.canv.bind("<Button-1>", self.run_with_bot)
-        else:
-            self.canv.bind("<Button-1>", self.run)
+        if Field.__gameMode == 0:
+            self.canv.bind("<Button-1>", self.__run)
+        elif Field.__gameMode == 1:
+            self.canv.bind("<Button-1>", self.__runBot)
 
-        widget1 = Button(self, text='Quit', command = self.quit)
-        widget1.pack(side='right', expand='yes', fill = BOTH)
-        
-        '''
-        widget2 = Button(self, text='Back', command = self.back)
-        widget2.pack(side='left', expand='yes', fill = BOTH)
-        '''
+        widget = Button(self, text='Quit', command = self.__quit)
+        widget.pack(side='right', expand='yes', fill = BOTH)
 
-    def run(self, event):
+    def __quit(self):
+        ans = messagebox.askokcancel('Verify exit', "Do you really want exit?")
+        if ans: 
+            Frame.__quit(self)
 
-        #checker coordinates calculation
+    def __run(self, event):
+
         x, y = (event.x)//100, (event.y)//100
         if Field.player:
             if Field.field[y][x]==1 or Field.field[y][x]==2:
@@ -81,13 +91,12 @@ class Field(Frame):
                 
             elif Field.field[y][x] == 0 and self.plr1.x1 != -1 and self.plr1.x2 == -1:
                 self.plr1.x2, self.plr1.y2 = x, y
-                if self.plr1.check_move_player():
+                if self.plr1._checkMove_player():
 
-                    if self.plr1.make_move():
+                    if self.plr1._makeMove():
                         Field.player = False#передача хода
 
-                    self.canv.coords(self.red_frame,-5,-5,-5,-5)#рамка вне поля
-                    self.draw_field(self.plr1.x1, self.plr1.y1, self.plr1.x2, self.plr1.y2)
+                    self._drawField(self.plr1.x1, self.plr1.y1, self.plr1.x2, self.plr1.y2)
                     self.plr1.x1 = self.plr1.y1 = self.plr1.x2 = self.plr1.y2 = -1
                 self.plr1.x2, self.plr1.y2 = -1, -1
 
@@ -100,22 +109,16 @@ class Field(Frame):
             elif Field.field[y][x] == 0 and self.plr2.x1 != -1 and self.plr2.x2 == -1:
                 self.plr2.x2, self.plr2.y2 = x, y
 
-                if self.plr2.check_move_player():
+                if self.plr2._checkMove_player():
 
-                    if self.plr2.make_move():
+                    if self.plr2._makeMove():
                         Field.player = True#pass the move
 
-                    self.canv.coords(self.red_frame,-5,-5,-5,-5)
-                    self.draw_field(self.plr2.x1, self.plr2.y1, self.plr2.x2, self.plr2.y2)
+                    self._drawField(self.plr2.x1, self.plr2.y1, self.plr2.x2, self.plr2.y2)
                     self.plr2.x1 = self.plr2.y1 = self.plr2.x2 = self.plr2.y2 = -1
                 self.plr2.x2, self.plr2.y2 = -1, -1
 
-    def quit(self):
-        ans = messagebox.askokcancel('Verify exit', "Do you really want exit?")
-        if ans: 
-            Frame.quit(self)
-
-    def run_with_bot(self, event):
+    def __runBot(self, event):
         #checker coordinates calculation
         x, y = (event.x)//100, (event.y)//100
         
@@ -126,61 +129,46 @@ class Field(Frame):
                 
             elif Field.field[y][x] == 0 and self.plr1.x1 != -1 and self.plr1.x2 == -1:
                 self.plr1.x2, self.plr1.y2 = x, y
-                if self.plr1.check_move_player():
+                if self.plr1._checkMove_player():
 
-                    if self.plr1.make_move():
+                    if self.plr1._makeMove():
                         Field.player = False#передача хода
 
-                    self.canv.coords(self.red_frame,-5,-5,-5,-5)#рамка вне поля
-                    self.draw_field(self.plr1.x1, self.plr1.y1, self.plr1.x2, self.plr1.y2)
+                    self._drawField(self.plr1.x1, self.plr1.y1, self.plr1.x2, self.plr1.y2)
                     self.plr1.x1 = self.plr1.y1 = self.plr1.x2 = self.plr1.y2 = -1
                 self.plr1.x2, self.plr1.y2 = -1, -1
 
-        elif not(Field.player):
-            
-            self.canv.coords(self.red_frame,-5,-5,-5,-5)#рамка вне поля
+        if not(Field.player):
+            fieldCopy = deepcopy(Field.field)
 
-            grid, s = [], ''
-            for row in Field.field:
-                for el in row:
-                    if el == 0:
-                        s += '_'
-                    elif el == 1:
-                        s += 'w'
-                    elif el == 2:
-                        s += 'W'
-                    elif el == 3:
-                        s += 'b'
-                    elif el == 4:
-                        s += 'B'
-                grid.append(s)
-                s =''
+            for x in range(8):
+                for y in range(8):
+                    if fieldCopy[x][y] == 0:
+                        fieldCopy[x][y] = '_'
+                    elif fieldCopy[x][y] == 1:
+                        fieldCopy[x][y] = 'w'
+                    elif fieldCopy[x][y] == 2:
+                        fieldCopy[x][y] = 'W'
+                    elif fieldCopy[x][y] == 3:
+                        fieldCopy[x][y] = 'b'
+                    elif fieldCopy[x][y] == 4:
+                        fieldCopy[x][y] = 'B'
 
-            print(grid)
-
-            state = CheckersState([list(row.rstrip()) for row in grid], True, [])
+            state = CheckersState(fieldCopy, True, [])
             move = iterativeDeepeningAlphaBeta(state, piecesCount)
             
-            print(move)
-            if self.make_move_bot(move):
+            if self._makeMove_bot(move):
                 Field.player = True#передача хода
 
-            self.draw_field(move[0][1], move[0][0], move[1][1], move[1][0])
-                    
-        
-    def make_move_bot(self, move):
+            self._drawField(move[0][1], move[0][0], move[1][1], move[1][0])
+                     
+    def _makeMove_bot(self, move):
         
         x1, y1, x2, y2 = move[0][1], move[0][0], move[1][1], move[1][0]
 
         val1, val2 = 3, 4
         val_q = 7
 
-        '''#сохранение предыдущего шага
-        Field.prev_field = Field.field[:]
-        for el in Field.field:
-            print(el)
-        print('\n')
-        '''
         #превращение
         if y2 == val_q and Field.field[y1][x1] == val1:
             Field.field[y1][x1] = val2
@@ -209,13 +197,13 @@ class Field(Frame):
 
                 #проверяем ход той же пешкой...
                 if Field.field[y2][x2] == val1 or Field.field[y2][x2] == val2:
-                    if self.look_move([],x2, y2):#возвращаем список доступных ходов
+                    if self._lookMove([],x2, y2):#возвращаем список доступных ходов
                         return False
                     else:
                         return True
             return True
 
-    def look_move(self, move_list, x, y):
+    def _lookMove(self, move_list, x, y):
         if Field.player:
             val1, val2, val3, val4 = 1, 2, 3, 4
 
@@ -244,24 +232,15 @@ class Field(Frame):
                             break
                             
         return move_list
-    '''
-    def back(self):
-        Field.field = Field.prev_field[:]
-    '''
-    '''
-    for el in Field.prev_field:
-        print(el)
-    print('\n')
-    '''
 
-    def draw_field(self, x1, y1, x2, y2):
+    def _drawField(self, x1, y1, x2, y2):
         k = 100
         
         self.canv.delete('all')
         
-        #checker's highlighting
+        #подсветка шашки
         self.red_frame = self.canv.create_rectangle(-5,-5,-5,-5, outline="red",width=5)
-
+        self.canv.coords(self.red_frame, x1*100, y1*100, x1*100+100, y1*100+100)
         x = 0
         while x < 8*k:#рисуем доску
             y=1*k
@@ -282,15 +261,8 @@ class Field(Frame):
         z = Field.field[y1][x1]
         if z:
             self.canv.create_image(x1*k, y1*k, anchor=NW, image=self.checkers[z],tag='ani')
+        self.canv.update()
 
-        #вычисление коэф. для анимации
-        kx = 1 if x1 < x2 else -1
-        ky = 1 if y1 < y2 else -1
-        for i in range(abs(x1 - x2)):#анимация перемещения пешки
-            for ii in range(33):
-                self.canv.move('ani',0.03*k*kx,0.03*k*ky)
-                self.canv.update()#обновление
-                time.sleep(0.01)
         
 '''
 ######################################################################################################
@@ -310,32 +282,32 @@ class Player(Field):
         self.x2 = -1
         self.y2 = -1    
 
-    def check_move_player(self):
+    def _checkMove_player(self):
         x1 = self.x1
         y1 = self.y1
         x2 = self.x2
         y2 = self.y2
 
-        move_list = self.obligatory_move()#necessary move
+        move_list = self._mustMove()#необходимые шаги
         
         if not(move_list):    
-            move_list = self.remaining_move()#check another moves
+            move_list = self._remainingMove()#остальные ходы
 
         if move_list:
-            if ((x1, y1),(x2, y2)) in move_list:#the move complies with the rules
+            if ((x1, y1),(x2, y2)) in move_list:#движение совпадают с правилами игры
                 return True
             else:
                 return False
         return False
 
-    def obligatory_move(self):#проверка наличия обязательных ходов
+    def _mustMove(self):#проверка наличия обязательных ходов
         move_list = []#список ходов
         for y in range(8):#сканируем всё поле
             for x in range(8):
-                move_list = self.look_move(move_list, x, y)
+                move_list = self._lookMove(move_list, x, y)
         return move_list
 
-    def look_move(self, move_list, x, y):
+    def _lookMove(self, move_list, x, y):
         if Field.player:
             val1, val2, val3, val4 = 1, 2, 3, 4
 
@@ -365,7 +337,7 @@ class Player(Field):
                             
         return move_list
 
-    def remaining_move(self):#проверка наличия остальных ходов для игрока
+    def _remainingMove(self):#проверка наличия остальных ходов для игрока
         if Field.player:
             val1, val2, val3, val4, val = 1, 2, 3, 4, -1
 
@@ -400,7 +372,7 @@ class Player(Field):
                                     break
         return move_list
 
-    def make_move(self):
+    def _makeMove(self):
         
         x1, y1, x2, y2 = self.x1, self.y1, self.x2, self.y2
 
@@ -412,12 +384,6 @@ class Player(Field):
             val1, val2 = 3, 4
             val_q = 7
 
-        '''#сохранение предыдущего шага
-        Field.prev_field = Field.field[:]
-        for el in Field.field:
-            print(el)
-        print('\n')
-        '''
         #превращение
         if y2 == val_q and Field.field[y1][x1] == val1:
             Field.field[y1][x1] = val2
@@ -446,20 +412,10 @@ class Player(Field):
 
                 #проверяем ход той же пешкой...
                 if Field.field[y2][x2] == val1 or Field.field[y2][x2] == val2:
-                    if self.look_move([],x2, y2):#возвращаем список доступных ходов
+                    if self._lookMove([],x2, y2):#возвращаем список доступных ходов
                         return False
                     else:
                         return True
             return True
 
-
-
-    '''
-    ######################################################################################################
-    ######################################################################################################
-    ######################################################################################################
-    ######################################################################################################
-    ######################################################################################################
-    BOT
-    '''
     
